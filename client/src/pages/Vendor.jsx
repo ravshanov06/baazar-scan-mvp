@@ -112,7 +112,7 @@ const Vendor = () => {
                 </div>
 
                 <div className="p-4 space-y-4">
-                    {shops.map((s, idx) => (
+                    {Array.isArray(shops) && Array.isArray(shops) && shops.map((s, idx) => (
                         <div
                             key={s.id}
                             onClick={() => selectShop(idx)}
@@ -248,7 +248,7 @@ const Vendor = () => {
                                     <span className="bg-primary/10 text-primary text-[10px] font-black px-2 py-1 rounded-full">{products.length} TURLI</span>
                                 </div>
 
-                                {products.map((product, idx) => (
+                                {Array.isArray(products) && Array.isArray(products) && products.map((product, idx) => (
                                     <div key={idx} className="flex gap-3 items-start bg-gray-50/50 p-4 rounded-xl border border-gray-200 group transition-all">
                                         <div className="flex-1 space-y-3">
                                             <input

@@ -3,7 +3,11 @@ import api from '../api/axios';
 import { BarChart2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 
 const Stats = () => {
-    const [stats, setStats] = useState(null);
+    const [stats, setStats] = useState({
+        totalShops: 0,
+        totalProducts: 0,
+        marketOverview: []
+    });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -13,14 +17,19 @@ const Stats = () => {
     const fetchStats = async () => {
         try {
             const res = await api.get('/api/shops/nearby?lat=41.2995&lon=69.2401&radius=50');
-            const shops = res.data;
+
+            // FIX: Ensure shops is always an array
+            const shops = Array.isArray(res.data) ? res.data : [];
+
+            console.log('DEBUG: API Response:', res.data); // Remove after debugging
+            console.log('DEBUG: Shops array:', shops); // Remove after debugging
 
             let totalProducts = 0;
             let totalShops = shops.length;
             let productPrices = {};
 
             shops.forEach(shop => {
-                if (shop.products) {
+                if (shop.products && Array.isArray(shop.products)) {
                     totalProducts += shop.products.length;
                     shop.products.forEach(p => {
                         const name = p.name.toLowerCase();
@@ -46,6 +55,11 @@ const Stats = () => {
             setLoading(false);
         } catch (e) {
             console.error("Stats error", e);
+            setStats({
+                totalShops: 0,
+                totalProducts: 0,
+                marketOverview: []
+            });
             setLoading(false);
         }
     };
@@ -64,7 +78,7 @@ const Stats = () => {
                         </div>
                         <span className="text-gray-500 text-sm">Do'konlar</span>
                     </div>
-                    <p className="text-2xl font-bold">{stats?.totalShops || 0}</p>
+                    <p className="text-2xl font-bold">{stats.totalShops}</p>
                 </div>
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                     <div className="flex items-center gap-2 mb-2">
@@ -73,13 +87,13 @@ const Stats = () => {
                         </div>
                         <span className="text-gray-500 text-sm">Mahsulotlar</span>
                     </div>
-                    <p className="text-2xl font-bold">{stats?.totalProducts || 0}</p>
+                    <p className="text-2xl font-bold">{stats.totalProducts}</p>
                 </div>
             </div>
 
             <h2 className="text-lg font-bold mb-3">Top Mahsulotlar Narxlari (o'rtacha)</h2>
             <div className="space-y-3">
-                {stats?.marketOverview?.map((item, idx) => (
+                {stats.marketOverview.map((item, idx) => (
                     <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                         <div className="flex justify-between items-center mb-2">
                             <h3 className="font-bold capitalize">{item.name}</h3>
@@ -103,7 +117,7 @@ const Stats = () => {
                         </div>
                     </div>
                 ))}
-                {stats?.marketOverview?.length === 0 && (
+                {stats.marketOverview.length === 0 && (
                     <div className="text-center text-gray-400 py-10">Ma'lumotlar yetarli emas</div>
                 )}
             </div>

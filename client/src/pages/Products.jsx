@@ -16,7 +16,12 @@ const Products = () => {
         setLoading(true);
         try {
             const res = await api.get('/api/shops/nearby?lat=41.2995&lon=69.2401&radius=10');
-            const shops = res.data;
+
+            // FIX: Validate that res.data is an array
+            const shops = Array.isArray(res.data) ? res.data : [];
+
+            console.log('DEBUG Products: API Response:', res.data); // Remove after debugging
+            console.log('DEBUG Products: Shops array:', shops); // Remove after debugging
 
             const allProducts = [];
             shops.forEach(shop => {
@@ -34,6 +39,7 @@ const Products = () => {
             setProducts(allProducts);
         } catch (error) {
             console.error("Failed to fetch products", error);
+            setProducts([]); // Ensure empty array on error
         }
         setLoading(false);
     };
@@ -85,7 +91,7 @@ const Products = () => {
                 ) : filteredProducts.length === 0 ? (
                     <div className="text-center text-gray-500 py-10">Mahsulotlar topilmadi</div>
                 ) : (
-                    filteredProducts.map((product, index) => (
+                    (filteredProducts || []).map((product, index) => (
                         <div key={`${product.shopId}-${product.id}-${index}`} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
                             <div>
                                 <h3 className="font-bold text-gray-800">{product.name}</h3>

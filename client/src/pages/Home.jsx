@@ -45,9 +45,17 @@ const Home = () => {
             if (category) url += `&category=${encodeURIComponent(category)}`;
 
             const res = await api.get(url);
-            setShops(res.data);
+
+            // FIX: Validate that res.data is an array
+            const shopsData = Array.isArray(res.data) ? res.data : [];
+
+            console.log('DEBUG Home: API Response:', res.data); // Remove after debugging
+            console.log('DEBUG Home: Shops array:', shopsData); // Remove after debugging
+
+            setShops(shopsData);
         } catch (error) {
             console.error("API Error (nearby shops):", error);
+            setShops([]); // Set empty array on error
         }
     };
 
@@ -76,12 +84,11 @@ const Home = () => {
         }
     };
 
-
     return (
         <div className="h-full relative overflow-hidden">
             {/* Map Canvas - z-0 to stay behind UI elements */}
             <div className="absolute inset-0 z-0">
-                <Map center={userLocation} zoom={14} markers={shops} />
+                <Map center={userLocation} zoom={14} markers={shops || []} />
             </div>
 
             {/* Overlay UI: Search & Categories */}

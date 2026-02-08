@@ -74,7 +74,8 @@ const Map = ({ center = [41.2995, 69.2401], zoom = 13, markers = [], onMarkerCli
             <MapUpdater center={center} zoom={zoom} />
             <MapEvents onCenterChange={onCenterChange} />
 
-            {markers.map((marker, idx) => {
+            {/* FIX 1: Add Array.isArray check */}
+            {Array.isArray(markers) && markers.map((marker, idx) => {
                 const color = marker.color && iconColors[marker.color] ? iconColors[marker.color] : iconColors.blue;
                 const icon = createCustomIcon(color);
 
@@ -91,7 +92,8 @@ const Map = ({ center = [41.2995, 69.2401], zoom = 13, markers = [], onMarkerCli
                             <div className="font-sans min-w-[150px]">
                                 <h3 className="font-black text-gray-900 border-b pb-1 mb-2">{marker.name}</h3>
                                 <div className="space-y-1">
-                                    {marker.products && marker.products.length > 0 ? (
+                                    {/* FIX 2: Add Array.isArray check for products */}
+                                    {Array.isArray(marker.products) && marker.products.length > 0 ? (
                                         marker.products.slice(0, 5).map((p, i) => (
                                             <div key={i} className="flex justify-between text-xs">
                                                 <span className="text-gray-600 font-medium capitalize">{p.name}:</span>
@@ -101,7 +103,7 @@ const Map = ({ center = [41.2995, 69.2401], zoom = 13, markers = [], onMarkerCli
                                     ) : (
                                         <p className="text-xs text-gray-400 italic">Ma'lumotlar yo'q</p>
                                     )}
-                                    {marker.products && marker.products.length > 5 && (
+                                    {Array.isArray(marker.products) && marker.products.length > 5 && (
                                         <p className="text-[10px] text-center text-gray-400 pt-1">+ yana {marker.products.length - 5} ta</p>
                                     )}
                                 </div>
