@@ -5,7 +5,8 @@ import { Map, Store, ShoppingBag, BarChart2 } from 'lucide-react';
 const MainLayout = () => {
     return (
         <div className="flex flex-col h-screen bg-gray-50">
-            <div className="flex-1 overflow-hidden relative">
+            {/* min-h-[300px] ensures map container has non-zero size on first paint for Leaflet */}
+            <div className="flex-1 min-h-[300px] overflow-hidden relative">
                 <Outlet />
             </div>
 

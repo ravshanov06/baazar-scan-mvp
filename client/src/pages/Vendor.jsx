@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Map from '../components/ui/Map';
 import { Save, Plus, Trash2, MapPin, Loader2, Store, ChevronRight } from 'lucide-react';
 import api from '../api/axios';
+
+const DEFAULT_CENTER = [41.2995, 69.2401];
 
 const Vendor = () => {
     const { user, logout, register } = useAuth(); // 'user' is now an array of shops
@@ -11,28 +13,38 @@ const Vendor = () => {
     const [shop, setShop] = useState(shops[0] || {});
     const [products, setProducts] = useState(shops[0]?.products || []);
     const [loading, setLoading] = useState(false);
-    const [location, setLocation] = useState([shops[0]?.lat || 41.2995, shops[0]?.lon || 69.2401]);
+    const [location, setLocation] = useState([shops[0]?.lat ?? DEFAULT_CENTER[0], shops[0]?.lon ?? DEFAULT_CENTER[1]]);
     const [activeTab, setActiveTab] = useState('details'); // details | prices
     const [showStoreList, setShowStoreList] = useState(true);
+    const hasInitialSyncRef = useRef(false);
 
-    useEffect(() => {
-        if (user && user.length > 0) {
-            setShops(user);
-            // Default select first shop if none selected
-            if (!shop.id && user[0]) {
-                selectShop(0);
-            }
-        }
-    }, [user]);
-
-    const selectShop = (index) => {
-        const selected = user[index];
+    const selectShop = useCallback((index) => {
+        const list = user || [];
+        const selected = list[index];
+        if (!selected) return;
         setActiveShopIndex(index);
         setShop(selected);
         setProducts(selected.products || []);
-        setLocation([selected.lat || 41.2995, selected.lon || 69.2401]);
+        setLocation([selected.lat ?? DEFAULT_CENTER[0], selected.lon ?? DEFAULT_CENTER[1]]);
         setShowStoreList(false);
-    };
+    }, [user]);
+
+    useEffect(() => {
+        if (!user || user.length === 0) {
+            hasInitialSyncRef.current = false;
+            return;
+        }
+        setShops(user);
+        if (hasInitialSyncRef.current) return;
+        hasInitialSyncRef.current = true;
+        const first = user[0];
+        if (first) {
+            setShop(first);
+            setActiveShopIndex(0);
+            setProducts(first.products || []);
+            setLocation([first.lat ?? DEFAULT_CENTER[0], first.lon ?? DEFAULT_CENTER[1]]);
+        }
+    }, [user]);
 
     const handleAddNewStore = () => {
         setShop({ name: '', categories: [], phone: user[0]?.phone });

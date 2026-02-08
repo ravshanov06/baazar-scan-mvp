@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css'; // Ensure CSS is imported
 
 // Helper to create colored markers using SVG
 const createCustomIcon = (color) => {
@@ -31,13 +30,16 @@ const iconColors = {
     red: '#ef4444'     // Expensive
 };
 
-// Component to update map view when center changes
+// Component to update map view when center changes. Skip setView when map is already at this center (e.g. after user drag) to avoid flicker.
 const MapUpdater = ({ center, zoom }) => {
     const map = useMap();
     useEffect(() => {
-        if (center) {
-            map.setView(center, zoom);
-        }
+        if (!center || !Array.isArray(center) || center.length < 2) return;
+        const current = map.getCenter();
+        const [lat, lng] = center;
+        const epsilon = 1e-6;
+        if (Math.abs(current.lat - lat) < epsilon && Math.abs(current.lng - lng) < epsilon) return;
+        map.setView(center, zoom);
     }, [center, zoom, map]);
     return null;
 };
@@ -74,14 +76,15 @@ const Map = ({ center = [41.2995, 69.2401], zoom = 13, markers = [], onMarkerCli
             <MapUpdater center={center} zoom={zoom} />
             <MapEvents onCenterChange={onCenterChange} />
 
-            {/* FIX 1: Add Array.isArray check */}
-            {Array.isArray(markers) && markers.map((marker, idx) => {
+            {Array.isArray(markers) && markers
+                .filter((m) => m != null && m.lat != null && m.lon != null && Number.isFinite(m.lat) && Number.isFinite(m.lon))
+                .map((marker, idx) => {
                 const color = marker.color && iconColors[marker.color] ? iconColors[marker.color] : iconColors.blue;
                 const icon = createCustomIcon(color);
 
                 return (
                     <Marker
-                        key={idx}
+                        key={marker.id ?? idx}
                         position={[marker.lat, marker.lon]}
                         icon={icon}
                         eventHandlers={{
