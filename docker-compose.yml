@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: bazaar
+      POSTGRES_PASSWORD: bazaar123
+      POSTGRES_DB: bazaardb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bazaar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build: ./server
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://bazaar:bazaar123@postgres:5432/bazaardb"
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    command: sh -c "npx prisma generate && npm run dev"
+
+volumes:
+  postgres_data:

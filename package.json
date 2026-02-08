@@ -1,0 +1,15 @@
+{
+  "name": "bazaar-scan-mvp",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "cd server && npm run dev",
+    "start": "cd server && npm start",
+    "db:push": "cd server && npx prisma db push",
+    "db:studio": "cd server && npx prisma studio",
+    "docker:up": "./start.sh",
+    "docker:down": "docker-compose down",
+    "seed": "curl http://localhost:3000/seed",
+    "fix-all": "./fix-all.sh"
+  }
+}

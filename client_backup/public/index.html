@@ -1,0 +1,487 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BazaarScan - Find Best Prices</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+        #map { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; }
+
+        .search-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .search-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-input input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .search-input button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            overflow-x: auto;
+        }
+
+        .filter-chip {
+            background: #f0f0f0;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 14px;
+        }
+
+        .filter-chip.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .results-panel {
+            position: fixed;
+            bottom: 80px;
+            left: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 16px;
+            max-height: 40vh;
+            overflow-y: auto;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: none;
+        }
+
+        .results-header {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+        }
+
+        .results-header h3 { margin: 0; }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .store-item {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .store-item:hover { background: #f8f9fa; }
+
+        .store-info h4 { margin-bottom: 4px; color: #2c3e50; }
+        .store-info p { font-size: 13px; color: #666; margin: 0; }
+        .store-info .distance { color: #3498db; font-size: 12px; }
+
+        .price-badge {
+            text-align: right;
+        }
+
+        .price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .unit { font-size: 12px; color: #666; }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .tag.cheapest { background: #d5f4e6; color: #27ae60; }
+        .tag.expensive { background: #fadbd8; color: #c0392b; }
+        .tag.average { background: #fef9e7; color: #f39c12; }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 1001;
+        }
+
+        .bottom-nav a {
+            color: #666;
+            text-decoration: none;
+            text-align: center;
+            font-size: 12px;
+            padding: 5px 20px;
+        }
+
+        .bottom-nav a.active { color: #3498db; }
+
+        .legend {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 999;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 8px;
+            z-index: 2000;
+            display: none;
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div id="map"></div>
+
+    <div class="search-panel">
+        <div class="search-input">
+            <input type="text" id="search-input" placeholder="What are you looking for? (e.g., tomato)">
+            <button onclick="searchProduct()">Search</button>
+        </div>
+        <div class="filters">
+            <button class="filter-chip active" onclick="filterCategory('all')">All</button>
+            <button class="filter-chip" onclick="filterCategory('vegetables')">🥬 Vegetables</button>
+            <button class="filter-chip" onclick="filterCategory('fruits')">🍎 Fruits</button>
+            <button class="filter-chip" onclick="filterCategory('meat')">🥩 Meat</button>
+            <button class="filter-chip" onclick="filterCategory('dairy')">🥛 Dairy</button>
+        </div>
+    </div>
+
+    <div class="results-panel" id="results-panel">
+        <div class="results-header">
+            <h3>🏪 Stores with <span id="search-term">this product</span></h3>
+            <button class="close-btn" onclick="closeResults()">×</button>
+        </div>
+        <div id="results-list"></div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="legend-color" style="background: #27ae60;"></div> Cheapest</div>
+        <div class="legend-item"><div class="legend-color" style="background: #f39c12;"></div> Average</div>
+        <div class="legend-item"><div class="legend-color" style="background: #e74c3c;"></div> Expensive</div>
+    </div>
+
+    <div class="bottom-nav">
+        <a href="/index.html" class="active">🗺️<br>Explore</a>
+        <a href="/vendor.html">🏪<br>Vendor</a>
+    </div>
+
+    <div class="loading" id="loading">Searching...</div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map, userMarker;
+        let storeMarkers = [];
+        let currentCategory = 'all';
+        let userLat = 41.2995, userLon = 69.2401; // Default Tashkent
+
+        function initMap() {
+            map = L.map('map', { zoomControl: false }).setView([userLat, userLon], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            // Get user location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        userLat = pos.coords.latitude;
+                        userLon = pos.coords.longitude;
+                        map.setView([userLat, userLon], 15);
+
+                        userMarker = L.marker([userLat, userLon], {
+                            icon: L.divIcon({
+                                className: 'user-location',
+                                html: '<div style="background: #3498db; width: 15px; height: 15px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.3);"></div>',
+                                iconSize: [20, 20]
+                            })
+                        }).addTo(map).bindPopup('You are here');
+
+                        loadNearbyStores();
+                    },
+                    (err) => {
+                        console.log('GPS error:', err);
+                        loadNearbyStores();
+                    }
+                );
+            }
+
+            // Add zoom control to bottom right
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+        }
+
+        async function loadNearbyStores() {
+            try {
+                const res = await fetch(`/api/shops/nearby?lat=${userLat}&lon=${userLon}&radius=10`);
+                const shops = await res.json();
+                displayStores(shops);
+            } catch (error) {
+                console.error('Error loading stores:', error);
+            }
+        }
+
+        function displayStores(shops, productPrices = null) {
+            // Clear existing markers
+            storeMarkers.forEach(m => map.removeLayer(m));
+            storeMarkers = [];
+
+            // Calculate price stats if product search
+            let minPrice = Infinity, maxPrice = 0;
+            if (productPrices) {
+                const prices = shops.map(s => s.products?.[0]?.price).filter(p => p);
+                if (prices.length > 0) {
+                    minPrice = Math.min(...prices);
+                    maxPrice = Math.max(...prices);
+                }
+            }
+
+            shops.forEach(shop => {
+                // Filter by category
+                if (currentCategory !== 'all' && shop.category !== currentCategory) return;
+
+                let color = '#95a5a6'; // Default gray
+                let tag = '';
+
+                if (productPrices && shop.products?.[0]?.price) {
+                    const price = shop.products[0].price;
+                    if (price <= minPrice * 1.1) {
+                        color = '#27ae60';
+                        tag = 'cheapest';
+                    } else if (price >= maxPrice * 0.9) {
+                        color = '#e74c3c';
+                        tag = 'expensive';
+                    } else {
+                        color = '#f39c12';
+                        tag = 'average';
+                    }
+                } else {
+                    color = getCategoryColor(shop.category);
+                }
+
+                const marker = L.circleMarker([shop.lat, shop.lon], {
+                    radius: productPrices ? 20 : 12,
+                    fillColor: color,
+                    color: '#fff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                }).addTo(map);
+
+                let popupContent = `<b>${shop.name}</b><br>${shop.address}<br><small>${shop.category}</small>`;
+                if (shop.products?.[0]) {
+                    popupContent += `<br><b>${shop.products[0].price} so'm/${shop.products[0].unit}</b>`;
+                }
+
+                marker.bindPopup(popupContent);
+                marker.on('click', () => {
+                    highlightStore(shop);
+                });
+
+                storeMarkers.push(marker);
+            });
+        }
+
+        function getCategoryColor(category) {
+            const colors = {
+                vegetables: '#27ae60',
+                fruits: '#e67e22',
+                meat: '#e74c3c',
+                dairy: '#3498db',
+                grains: '#f39c12',
+                other: '#95a5a6'
+            };
+            return colors[category] || '#95a5a6';
+        }
+
+        async function searchProduct() {
+            const product = document.getElementById('search-input').value.trim();
+            if (!product) return;
+
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                const res = await fetch(`/api/map/map-data?product=${encodeURIComponent(product)}`);
+                const shops = await res.json();
+
+                document.getElementById('search-term').textContent = product;
+                document.getElementById('results-panel').style.display = 'block';
+
+                // Calculate distances and sort
+                shops.forEach(shop => {
+                    shop.distance = calculateDistance(userLat, userLon, shop.lat, shop.lon);
+                });
+                shops.sort((a, b) => a.distance - b.distance);
+
+                displayResults(shops);
+                displayStores(shops, true);
+
+                // Fit map to show all markers
+                if (storeMarkers.length > 0) {
+                    const group = new L.featureGroup(storeMarkers);
+                    map.fitBounds(group.getBounds().pad(0.1));
+                }
+
+            } catch (error) {
+                console.error('Search error:', error);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function displayResults(shops) {
+            const prices = shops.map(s => s.products?.[0]?.price).filter(p => p);
+            const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+            const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+
+            const html = shops.map(shop => {
+                const price = shop.products?.[0]?.price;
+                let tagClass = 'average';
+                let tagText = 'Average';
+
+                if (price) {
+                    if (price <= minPrice * 1.1) {
+                        tagClass = 'cheapest';
+                        tagText = 'Best Price';
+                    } else if (price >= maxPrice * 0.9) {
+                        tagClass = 'expensive';
+                        tagText = 'Premium';
+                    }
+                }
+
+                return `
+                    <div class="store-item" onclick="focusStore(${shop.lat}, ${shop.lon})">
+                        <div class="store-info">
+                            <h4>${shop.name}</h4>
+                            <p>${shop.address.substring(0, 50)}...</p>
+                            <p class="distance">📍 ${shop.distance.toFixed(1)} km away</p>
+                            <span class="tag ${tagClass}">${tagText}</span>
+                        </div>
+                        <div class="price-badge">
+                            <div class="price">${price || '--'}</div>
+                            <div class="unit">so'm/${shop.products?.[0]?.unit || 'kg'}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('results-list').innerHTML = html;
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function focusStore(lat, lon) {
+            map.setView([lat, lon], 18);
+        }
+
+        function closeResults() {
+            document.getElementById('results-panel').style.display = 'none';
+        }
+
+        function filterCategory(cat) {
+            currentCategory = cat;
+            document.querySelectorAll('.filter-chip').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.toLowerCase().includes(cat) || (cat === 'all' && btn.textContent === 'All')) {
+                    btn.classList.add('active');
+                }
+            });
+            loadNearbyStores();
+        }
+
+        function highlightStore(shop) {
+            // Could scroll to store in results list
+        }
+
+        // Initialize
+        initMap();
+    </script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Market {
+  id          String    @id @default(cuid())
+  name        String    
+  location    String?
+  floorPlan   String?   
+  sections    Section[]
+  shops       Shop[]    
+  createdAt   DateTime  @default(now())
+}
+
+model Section {
+  id          String    @id @default(cuid())
+  name        String    
+  marketId    String
+  market      Market    @relation(fields: [marketId], references: [id])
+  shops       Shop[]    
+}
+
+model Shop {
+  id          String    @id @default(cuid())
+  name        String    
+  phone       String    // Vendor identifier (non-unique to allow multiple shops)
+  
+  // Relations to Market/Section (optional now since we use lat/lon)
+  marketId    String?
+  sectionId   String?
+  market      Market?   @relation(fields: [marketId], references: [id])
+  section     Section?  @relation(fields: [sectionId], references: [id])
+  
+  // Location - required
+  address     String
+  lat         Float
+  lon         Float
+  
+  categories  String[]    
+  products    Product[]
+  isVerified  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([lat, lon])
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  name        String    
+  unit        String    @default("kg")
+  price       Float
+  shopId      String
+  shop        Shop      @relation(fields: [shopId], references: [id])
+  category    String    @default("other")
+  lastUpdated DateTime  @default(now())
+  @@unique([shopId, name]) 
+  @@index([name, category])
+}
+
+model PriceSnapshot {
+  id           String   @id @default(cuid())
+  productName  String
+  marketId     String
+  minPrice     Float
+  maxPrice     Float
+  avgPrice     Float
+  calculatedAt DateTime @default(now())
+}
