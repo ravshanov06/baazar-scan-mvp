@@ -1,6 +1,8 @@
 FROM node:18-slim
 
-# Slim has OpenSSL already
+# Prisma needs OpenSSL; slim may not have the version Prisma expects
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci

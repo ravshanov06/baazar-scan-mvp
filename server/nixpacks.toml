@@ -1,0 +1,3 @@
+# Prisma needs OpenSSL at runtime; ensure it's available when Railway uses Nixpacks
+[phases.setup]
+nixLibs = ["openssl"]
