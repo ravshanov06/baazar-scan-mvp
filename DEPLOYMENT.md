@@ -1,5 +1,7 @@
 # BazaarScan MVP - Deployment Guide
 
+Once the project is connected to Vercel and Railway from GitHub, **pushing to `main` triggers automatic deploys**: Vercel builds and deploys the frontend (from `client/`), and Railway builds and deploys the backend (from `server/`). No extra steps needed.
+
 ## Prerequisites
 - GitHub account
 - Vercel account (free tier)
@@ -24,21 +26,21 @@ git push -u origin main
 4. Railway will auto-detect Node.js
 
 ### Configure Backend:
-- **Root Directory**: `server`
-- **Start Command**: `npm start`
-- **Environment Variables**:
+- **Root Directory**: `server` (required — build/start commands in `railway.json` run from this folder)
+- Build and start commands are read from repo `railway.json` (no need to set in dashboard)
+- **Environment Variables** (set in Railway → Service → Variables):
   ```
   NODE_ENV=production
   PORT=3000
+  DATABASE_URL=<auto-set when you add PostgreSQL>
+  CORS_ORIGIN=https://your-frontend.vercel.app
   ```
+  `CORS_ORIGIN` is optional but recommended so the API only accepts requests from your Vercel frontend.
 
 ### Add PostgreSQL Database:
 1. Click "New" → "Database" → "Add PostgreSQL"
 2. Railway will automatically set `DATABASE_URL`
-3. Run migrations: In Railway dashboard, go to your service → "Settings" → "Deploy" → Add build command:
-   ```
-   cd server && npx prisma migrate deploy
-   ```
+3. Migrations run automatically during build (see `railway.json`: `npx prisma migrate deploy`)
 
 ### Get Backend URL:
 - Go to "Settings" → "Generate Domain"
@@ -101,9 +103,9 @@ app.use(cors({
 ## Production Checklist
 
 - [ ] Database is clean (no mock data)
-- [ ] Environment variables configured
-- [ ] CORS configured for production domain
-- [ ] API URL updated in frontend
+- [ ] Railway: `DATABASE_URL`, `NODE_ENV`, `PORT`; optional `CORS_ORIGIN` (your Vercel URL)
+- [ ] Vercel: `VITE_API_URL` set to your Railway backend URL
+- [ ] Railway service Root Directory set to `server` (so `server/railway.json` is used)
 - [ ] SSL certificates active (automatic on Vercel/Railway)
 - [ ] Test all user flows in production
 

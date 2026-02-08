@@ -26,9 +26,8 @@ git push origin main
 After deployment starts:
 - Click on the service card
 - Go to Settings → Service
-- **Root Directory**: `server`
-- **Start Command**: `npm start`
-- **Build Command**: `npm install && npx prisma generate && npx prisma migrate deploy`
+- **Root Directory**: `server` (required)
+- Build and start commands are read from the repo’s `railway.json`; no need to set them in the dashboard
 
 **C. Add PostgreSQL**
 - Click "New" in your project
@@ -75,13 +74,7 @@ Visit your Vercel URL and verify:
 - Verify Railway backend is running
 
 **CORS errors?**
-Add to `server/src/app.js`:
-```javascript
-app.use(cors({
-  origin: 'https://your-vercel-url.vercel.app',
-  credentials: true
-}));
-```
+Set the `CORS_ORIGIN` (or `FRONTEND_URL`) environment variable in Railway to your Vercel URL (e.g. `https://your-app.vercel.app`). The server is already configured to use it.
 
 ## Costs
 - Railway: $5 free credit/month
